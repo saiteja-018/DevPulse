@@ -39,7 +39,7 @@ A full-stack real-time developer collaboration and code review platform built wi
 
 ```bash
 git clone <repository-url>
-cd developer-collaboration-platform
+cd DevPulse
 npm install
 ```
 
