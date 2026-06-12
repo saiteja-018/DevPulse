@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  displayName   String
+  avatarUrl     String?
+  githubId      String?  @unique
+  reputation    Int      @default(0)
+  passwordHash  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  submissions   Submission[]
+  reviews       Review[]
+  votes         Vote[]
+  notifications Notification[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Submission {
+  id            String            @id @default(cuid())
+  title         String
+  description   String
+  codeContent   String
+  language      String
+  status        SubmissionStatus  @default(PENDING)
+  difficultyTag DifficultyTag
+  viewCount     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  authorId      String
+
+  author        User              @relation(fields: [authorId], references: [id])
+  reviews       Review[]
+  votes         Vote[]
+  tags          SubmissionTag[]
+  snapshots     CodeSnapshot[]
+
+  @@map("submissions")
+}
+
+model Review {
+  id            String       @id @default(cuid())
+  content       String
+  lineReference Int?
+  rating        Int
+  isResolved    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  submissionId  String
+  reviewerId    String
+
+  submission    Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer      User         @relation(fields: [reviewerId], references: [id])
+
+  @@map("reviews")
+}
+
+model Vote {
+  id           String     @id @default(cuid())
+  voteType     VoteType
+  createdAt    DateTime   @default(now())
+  submissionId String
+  userId       String
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([submissionId, userId])
+  @@map("votes")
+}
+
+model Tag {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  color       String
+
+  submissions SubmissionTag[]
+
+  @@map("tags")
+}
+
+model SubmissionTag {
+  submissionId String
+  tagId        String
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  tag          Tag        @relation(fields: [tagId], references: [id])
+
+  @@id([submissionId, tagId])
+  @@map("submission_tags")
+}
+
+model CodeSnapshot {
+  id           String     @id @default(cuid())
+  imageUrl     String
+  uploadedAt   DateTime   @default(now())
+  submissionId String
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("code_snapshots")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  userId    String
+  metadata  Json?
+
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  UNDER_REVIEW
+  REVIEWED
+  CLOSED
+}
+
+enum DifficultyTag {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+enum NotificationType {
+  NEW_REVIEW
+  VOTE_RECEIVED
+  REVIEW_RESOLVED
+  REPUTATION_MILESTONE
+}
